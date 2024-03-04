@@ -1,5 +1,5 @@
 # install snao softwares
-snap install dbeaver-ce discord insomnia postman spotify vlc zoom-client teams-for-linus
+snap install dbeaver-ce discord insomnia postman spotify vlc zoom-client teams-for-linus slack --classic
 
 # update system
 sudo apt update
@@ -58,9 +58,19 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # install k9s
 brew install k9s pyenv
 
+# Install kubectl
+sudo apt-get update && sudo apt-get install -y apt-transport-https gnupg2
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubectl
+
 # Configure pyenv virtualenv
 git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
 echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.zshrc
 
 # install ulauncher
 sudo add-apt-repository universe -y && sudo add-apt-repository ppa:agornostal/ulauncher -y && sudo apt update && sudo apt install ulauncher -y
+
+# install flameshot
+sudo apt install git-all zsh vim curl silversearcher-ag libfuse2 ca-certificates curl gnupg docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin build-essential procps curl file git flameshot htop
