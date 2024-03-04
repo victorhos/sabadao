@@ -26,9 +26,9 @@ newgrp docker
 
 # install git
 git config --global user.name "Victor Silva"
-git config --global user.email "victor.silva@juntossomosmais.com.br"
+git config --global user.email "email"
 
-ssh-keygen -t ed25519 -C "victor.silva@juntossomosmais.com.br"
+ssh-keygen -t ed25519 -C "email"
 ssh-add ~/.ssh/id_ed25519
 
 # install github cli
