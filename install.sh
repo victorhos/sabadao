@@ -18,6 +18,9 @@ sudo apt-get update
 
 # install many apps/libs
 sudo apt install git-all zsh vim curl silversearcher-ag libfuse2 ca-certificates curl gnupg docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin build-essential procps curl file git flameshot htop
+sudo apt update; sudo apt install make build-essential libssl-dev zlib1g-dev \
+libbz2-dev libreadline-dev libsqlite3-dev curl git \
+libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 
 # docker permission
 sudo groupadd docker
