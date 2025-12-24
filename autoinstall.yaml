@@ -1,0 +1,90 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu-desktop
+    password: "123" # CHANGE THIS: Use 'openssl passwd -6' to generate a real hash
+    realname: Victor Silva
+    username: victorhos
+  keyboard:
+    layout: us
+    toggle: null
+    variant: 'in'
+  locale: pt_BR.UTF-8
+  timezone: America/Sao_Paulo
+  storage:
+    layout:
+      name: direct
+  ssh:
+    install-server: true
+    allow-pw: true
+  apt:
+    geoip: true
+    preserve_sources_list: false
+    primary:
+      - arches: [default]
+        uri: http://br.archive.ubuntu.com/ubuntu/
+    sources:
+      docker:
+        source: deb [arch=amd64] https://download.docker.com/linux/ubuntu $RELEASE stable
+        keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+      github-cli:
+        source: deb [arch=amd64] https://cli.github.com/packages stable main
+        keyid: 23F3D4EA75716059
+      kubernetes:
+        source: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        keyid: 54A647F906870BB5
+  packages:
+    - ubuntu-desktop
+    - git-all
+    - zsh
+    - vim
+    - curl
+    - silversearcher-ag
+    - libfuse2
+    - ca-certificates
+    - gnupg
+    - build-essential
+    - procps
+    - file
+    - git
+    - htop
+    - wget
+    - libssl-dev
+    - zlib1g-dev
+    - libbz2-dev
+    - libreadline-dev
+    - libsqlite3-dev
+    - libncursesw5-dev
+    - xz-utils
+    - tk-dev
+    - libxml2-dev
+    - libxmlsec1-dev
+    - libffi-dev
+    - liblzma-dev
+    - apt-transport-https
+    - gnupg2
+    - gh
+    - libreoffice
+    - libreoffice-l10n-pt-br
+    - virtualbox
+    - virtualbox-ext-pack
+  snaps:
+    - name: dbeaver-ce
+    - name: discord
+    - name: postman
+    - name: spotify
+    - name: vlc
+    - name: zoom-client
+    - name: teams-for-linux
+    - name: slack
+    - name: firefox
+      classic: true
+  codecs:
+    install: true
+  drivers:
+    install: true
+  oem:
+    install: auto
+  updates: all
+  shutdown: reboot
