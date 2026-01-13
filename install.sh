@@ -83,7 +83,7 @@ is_user_in_group() {
 install_packages() {
   local packages=("$@")
   local to_install=()
-  
+
   for package in "${packages[@]}"; do
     if is_package_installed "$package"; then
       log_success "$package is already installed"
@@ -91,12 +91,12 @@ install_packages() {
       to_install+=("$package")
     fi
   done
-  
+
   if [ ${#to_install[@]} -eq 0 ]; then
     log_info "All packages are already installed"
     return 0
   fi
-  
+
   log_info "Installing ${#to_install[@]} package(s)..."
   sudo apt install -y "${to_install[@]}" 2>&1 | while IFS= read -r line; do
     echo "$line"
@@ -108,13 +108,13 @@ download_with_cache() {
   local url="$1"
   local filename=$(basename "$url")
   local filepath="${DOWNLOADS_DIR}/${filename}"
-  
+
   if [ -f "$filepath" ]; then
     log_success "Using cached file: $filename"
     echo "$filepath"
     return 0
   fi
-  
+
   log_info "Downloading: $filename"
   if wget -q --show-progress -O "$filepath" "$url"; then
     log_success "Downloaded: $filename"
@@ -129,14 +129,14 @@ download_with_cache() {
 main() {
   echo "🚀 Starting installation process..."
   echo ""
-  
+
   # Update package list once at the beginning
   log_info "Updating package list..."
   start_timer
   sudo apt update
   end_timer
   echo ""
-  
+
   # Install essential packages
   echo "🚀 Installing essential system packages..."
   start_timer
@@ -168,18 +168,19 @@ main() {
     tk-dev \
     vim \
     xz-utils \
+    xsel \
     zlib1g-dev \
     zsh
   end_timer
   echo ""
-  
+
   # Remove unused packages
   echo "🧹 Removing unused packages..."
   start_timer
   sudo apt autoremove -y
   end_timer
   echo ""
-  
+
   # Configure Docker permissions
   echo "🔐 Configuring Docker permissions..."
   start_timer
@@ -189,7 +190,7 @@ main() {
   else
     log_success "Docker group already exists"
   fi
-  
+
   if is_user_in_group "docker"; then
     log_success "User is already in docker group"
   else
@@ -198,7 +199,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Configure Git
   echo "⚙️ Configuring Git (user and email)..."
   start_timer
@@ -207,7 +208,7 @@ main() {
   log_success "Git configured"
   end_timer
   echo ""
-  
+
   # Generate SSH key
   if [ "$SKIP_SSH_KEY_GENERATION" = false ]; then
     echo "🔑 Generating SSH key (ed25519)..."
@@ -225,7 +226,7 @@ main() {
   else
     log_info "Skipping SSH key generation"
   fi
-  
+
   # Configure GitHub CLI repository
   echo "🐙 Configuring GitHub CLI repository..."
   start_timer
@@ -241,7 +242,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Configure Docker repository
   echo "🐳 Configuring Docker repository..."
   start_timer
@@ -259,7 +260,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Configure Kubernetes repository
   echo "☸️ Configuring Kubernetes repository..."
   start_timer
@@ -276,7 +277,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Configure uLauncher repository
   echo "⚙️ Configuring uLauncher repository..."
   start_timer
@@ -289,7 +290,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Configure Antigravity repository
   echo "⚙️ Configuring Antigravity repository..."
   start_timer
@@ -305,12 +306,12 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Update package list after adding repositories
   log_info "Updating package list after repository configuration..."
   sudo apt update
   echo ""
-  
+
   # Install main tools and applications
   echo "📦 Installing main tools and applications..."
   start_timer
@@ -326,11 +327,11 @@ main() {
     ulauncher
   end_timer
   echo ""
-  
+
   # Remove unused packages again
   sudo apt autoremove -y
   echo ""
-  
+
   # GitHub login and SSH key configuration
   if [ "$SKIP_GITHUB_LOGIN" = false ]; then
     echo "🔐 Logging into GitHub and configuring SSH key..."
@@ -342,7 +343,7 @@ main() {
       gh auth login
       gh auth refresh -h github.com -s admin:public_key
     fi
-    
+
     if [ -f ~/.ssh/id_ed25519.pub ]; then
       gh ssh-key add ~/.ssh/id_ed25519.pub --title "$SSH_KEY_TITLE" 2>/dev/null || \
         log_warning "SSH key may already be added to GitHub"
@@ -352,7 +353,7 @@ main() {
   else
     log_info "Skipping GitHub login"
   fi
-  
+
   # Install Oh My Zsh
   echo "⚡ Installing Oh My Zsh..."
   start_timer
@@ -364,7 +365,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Install Google Chrome
   echo "🌐 Installing Google Chrome..."
   start_timer
@@ -374,7 +375,7 @@ main() {
     local chrome_url="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
     local chrome_filename=$(basename "$chrome_url")
     local chrome_file="${DOWNLOADS_DIR}/${chrome_filename}"
-    
+
     # Check if already downloaded before downloading
     if [ -f "$chrome_file" ]; then
       log_info "Using cached Chrome installer"
@@ -382,7 +383,7 @@ main() {
       log_info "Downloading Google Chrome..."
       chrome_file=$(download_with_cache "$chrome_url")
     fi
-    
+
     if [ -n "$chrome_file" ] && [ -f "$chrome_file" ]; then
       log_info "Installing Google Chrome..."
       sudo dpkg -i "$chrome_file" || sudo apt-get install -f -y
@@ -393,7 +394,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Install JetBrains Toolbox
   echo "💡 Installing JetBrains Toolbox..."
   start_timer
@@ -405,7 +406,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Install Homebrew
   echo "🍺 Installing Homebrew..."
   start_timer
@@ -419,7 +420,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Install Snap applications
   echo "📱 Installing applications via Snap..."
   start_timer
@@ -438,7 +439,7 @@ main() {
       vlc
       zoom-client
     )
-    
+
     for package in "${snap_packages[@]}"; do
       if snap list "$package" &> /dev/null; then
         log_success "$package is already installed"
@@ -454,7 +455,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   # Install development tools via Homebrew
   echo "🍺 Installing development tools via Homebrew..."
   start_timer
@@ -473,7 +474,7 @@ main() {
   fi
   end_timer
   echo ""
-  
+
   echo "🎉 Installation completed successfully!"
 }
 
