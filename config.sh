@@ -16,3 +16,8 @@ DOWNLOADS_DIR="${CACHE_DIR}/downloads"
 SKIP_GITHUB_LOGIN=false
 SKIP_SSH_KEY_GENERATION=false
 VERBOSE=false
+
+# Application URLs
+CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+ULAUNCHER_URL="https://github.com/Ulauncher/Ulauncher/releases/download/v6.0.0-beta30/ulauncher_6.0.0.beta30_all.deb"
+CURSOR_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.0"

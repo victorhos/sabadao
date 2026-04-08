@@ -17,6 +17,9 @@ else
   SKIP_GITHUB_LOGIN=false
   SKIP_SSH_KEY_GENERATION=false
   VERBOSE=false
+  CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+  ULAUNCHER_URL="https://github.com/Ulauncher/Ulauncher/releases/download/v6.0.0-beta30/ulauncher_6.0.0.beta30_all.deb"
+  CURSOR_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.0"
 fi
 
 # Create cache directories
@@ -106,7 +109,7 @@ install_packages() {
 # Download file with cache
 download_with_cache() {
   local url="$1"
-  local filename=$(basename "$url")
+  local filename="${2:-$(basename "$url")}"
   local filepath="${DOWNLOADS_DIR}/${filename}"
 
   if [ -f "$filepath" ]; then
@@ -147,9 +150,11 @@ main() {
     curl \
     file \
     flameshot \
-    gparted \
+    flatpak \
     git-all \
+    gnome-software-plugin-flatpak \
     gnupg \
+    gparted \
     htop \
     libbz2-dev \
     libffi-dev \
@@ -167,8 +172,8 @@ main() {
     solaar \
     tk-dev \
     vim \
-    xz-utils \
     xsel \
+    xz-utils \
     zlib1g-dev \
     zsh
   end_timer
@@ -250,12 +255,17 @@ main() {
     log_success "Docker repository already configured"
   else
     sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-      sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
+    # Add the repository to Apt sources:
+    sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
     log_success "Docker repository configured"
   fi
   end_timer
@@ -274,19 +284,6 @@ main() {
       sudo tee /etc/apt/sources.list.d/kubernetes.list
     sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list
     log_success "Kubernetes repository configured"
-  fi
-  end_timer
-  echo ""
-
-  # Configure uLauncher repository
-  echo "⚙️ Configuring uLauncher repository..."
-  start_timer
-  if grep -rq "agornostal/ulauncher" /etc/apt/sources.list.d/ 2>/dev/null; then
-    log_success "uLauncher repository already configured"
-  else
-    sudo add-apt-repository universe -y
-    sudo add-apt-repository ppa:agornostal/ulauncher -y
-    log_success "uLauncher repository configured"
   fi
   end_timer
   echo ""
@@ -323,8 +320,7 @@ main() {
     docker-ce-cli \
     docker-compose-plugin \
     gh \
-    kubectl \
-    ulauncher
+    kubectl
   end_timer
   echo ""
 
@@ -363,6 +359,25 @@ main() {
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     log_success "Oh My Zsh installed"
   fi
+  
+  if [ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
+    log_success "zsh-autosuggestions plugin is already installed"
+  else
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    log_success "zsh-autosuggestions plugin installed"
+  fi
+  end_timer
+  echo ""
+
+  # Set Zsh as default shell
+  echo "🐚 Setting Zsh as default shell..."
+  start_timer
+  if grep -q "^$USER:.*:$(which zsh)" /etc/passwd; then
+    log_success "Zsh is already the default shell"
+  else
+    sudo chsh -s "$(which zsh)" "$USER"
+    log_success "Zsh set as default shell (requires logout/login to take effect)"
+  fi
   end_timer
   echo ""
 
@@ -372,7 +387,7 @@ main() {
   if is_package_installed "google-chrome-stable" || command -v google-chrome &> /dev/null; then
     log_success "Google Chrome is already installed"
   else
-    local chrome_url="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+    local chrome_url="$CHROME_URL"
     local chrome_filename=$(basename "$chrome_url")
     local chrome_file="${DOWNLOADS_DIR}/${chrome_filename}"
 
@@ -380,8 +395,7 @@ main() {
     if [ -f "$chrome_file" ]; then
       log_info "Using cached Chrome installer"
     else
-      log_info "Downloading Google Chrome..."
-      chrome_file=$(download_with_cache "$chrome_url")
+      download_with_cache "$chrome_url"
     fi
 
     if [ -n "$chrome_file" ] && [ -f "$chrome_file" ]; then
@@ -390,6 +404,62 @@ main() {
       log_success "Google Chrome installed"
     else
       log_error "Failed to download or find Chrome installer"
+    fi
+  fi
+  end_timer
+  echo ""
+
+  # Install Ulauncher
+  echo "🚀 Installing Ulauncher..."
+  start_timer
+  if is_package_installed "ulauncher" || command -v ulauncher &> /dev/null; then
+    log_success "Ulauncher is already installed"
+  else
+    local ulauncher_url="$ULAUNCHER_URL"
+    local ulauncher_filename=$(basename "$ulauncher_url")
+    local ulauncher_file="${DOWNLOADS_DIR}/${ulauncher_filename}"
+
+    # Check if already downloaded before downloading
+    if [ -f "$ulauncher_file" ]; then
+      log_info "Using cached Ulauncher installer"
+    else
+      download_with_cache "$ulauncher_url"
+    fi
+
+    if [ -n "$ulauncher_file" ] && [ -f "$ulauncher_file" ]; then
+      log_info "Installing Ulauncher..."
+      sudo dpkg -i "$ulauncher_file" || sudo apt-get install -f -y
+      log_success "Ulauncher installed"
+    else
+      log_error "Failed to download or find Ulauncher installer"
+    fi
+  fi
+  end_timer
+  echo ""
+
+  # Install Cursor
+  echo "💻 Installing Cursor..."
+  start_timer
+  if is_package_installed "cursor" || command -v cursor &> /dev/null; then
+    log_success "Cursor is already installed"
+  else
+    local cursor_url="$CURSOR_URL"
+    local cursor_filename="cursor_installer.deb"
+    local cursor_file="${DOWNLOADS_DIR}/${cursor_filename}"
+
+    # Check if already downloaded before downloading
+    if [ -f "$cursor_file" ]; then
+      log_info "Using cached Cursor installer"
+    else
+      download_with_cache "$cursor_url" "$cursor_filename"
+    fi
+
+    if [ -n "$cursor_file" ] && [ -f "$cursor_file" ]; then
+      log_info "Installing Cursor..."
+      sudo dpkg -i "$cursor_file" || sudo apt-get install -f -y
+      log_success "Cursor installed"
+    else
+      log_error "Failed to download or find Cursor installer"
     fi
   fi
   end_timer
@@ -421,35 +491,37 @@ main() {
   end_timer
   echo ""
 
-  # Install Snap applications
-  echo "📱 Installing applications via Snap..."
+  # Install Flatpak applications
+  echo "📱 Installing applications via Flatpak..."
   start_timer
-  if ! command -v snap &> /dev/null; then
-    log_warning "Snap is not installed, skipping snap applications"
+  if ! command -v flatpak &> /dev/null; then
+    log_warning "Flatpak is not installed, skipping flatpak applications"
   else
-    local snap_packages=(
-      beekeeper-studio
-      discord
-      insomnia
-      postman
-      slack
-      spotify
-      teams-for-linux
-      telegram-desktop
-      vlc
-      zoom-client
+    log_info "Configuring Flathub repository..."
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+    local flatpak_packages=(
+      com.discordapp.Discord
+      com.spotify.Client
+      com.valvesoftware.Steam
+      org.telegram.desktop
+      org.videolan.VLC
+      us.zoom.Zoom
+      com.anydesk.Anydesk
+      io.dbeaver.DBeaverCommunity
+      com.getpostman.Postman
+      org.flameshot.Flameshot
+      com.warlordsoftwares.youtube-downloader-4ktube
+      com.slack.Slack
+      io.github.pwr_solaar.solaar
     )
 
-    for package in "${snap_packages[@]}"; do
-      if snap list "$package" &> /dev/null; then
+    for package in "${flatpak_packages[@]}"; do
+      if flatpak info "$package" &> /dev/null; then
         log_success "$package is already installed"
       else
         log_info "Installing $package..."
-        if [[ "$package" =~ ^(discord|slack|spotify|telegram-desktop|vlc|zoom-client)$ ]]; then
-          snap install "$package" --classic 2>/dev/null || snap install "$package"
-        else
-          snap install "$package"
-        fi
+        flatpak install -y flathub "$package" || log_error "Failed to install $package"
       fi
     done
   fi
