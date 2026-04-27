@@ -172,6 +172,7 @@ main() {
     solaar \
     tk-dev \
     vim \
+    wl-clipboard \
     xsel \
     xz-utils \
     zlib1g-dev \
