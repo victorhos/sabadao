@@ -20,7 +20,6 @@ else
   CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
   ULAUNCHER_URL="https://github.com/Ulauncher/Ulauncher/releases/download/v6.0.0-beta30/ulauncher_6.0.0.beta30_all.deb"
   CURSOR_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.0"
-  AWS_CLI_VERSION="2.0.30"
 fi
 
 # Create cache directories
@@ -481,7 +480,7 @@ EOF
     log_info "Downloading and installing AWS CLI..."
     (
       cd "${DOWNLOADS_DIR}"
-      curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip"
+      curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
       unzip -q awscliv2.zip
       sudo ./aws/install
     )
