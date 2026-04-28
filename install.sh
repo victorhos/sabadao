@@ -20,6 +20,7 @@ else
   CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
   ULAUNCHER_URL="https://github.com/Ulauncher/Ulauncher/releases/download/v6.0.0-beta30/ulauncher_6.0.0.beta30_all.deb"
   CURSOR_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.0"
+  AWS_CLI_VERSION="2.0.30"
 fi
 
 # Create cache directories
@@ -148,6 +149,7 @@ main() {
     build-essential \
     ca-certificates \
     curl \
+    ffmpeg \
     file \
     flameshot \
     flatpak \
@@ -156,6 +158,7 @@ main() {
     gnupg \
     gparted \
     htop \
+    isort \
     libbz2-dev \
     libffi-dev \
     libfuse2 \
@@ -171,7 +174,10 @@ main() {
     silversearcher-ag \
     solaar \
     tk-dev \
+    unzip \
     vim \
+    vim-gtk3 \
+    vim-nox \
     wl-clipboard \
     xsel \
     xz-utils \
@@ -462,6 +468,24 @@ EOF
     else
       log_error "Failed to download or find Cursor installer"
     fi
+  fi
+  end_timer
+  echo ""
+
+  # Install AWS CLI
+  echo "☁️ Installing AWS CLI..."
+  start_timer
+  if command -v aws &> /dev/null; then
+    log_success "AWS CLI is already installed"
+  else
+    log_info "Downloading and installing AWS CLI..."
+    (
+      cd "${DOWNLOADS_DIR}"
+      curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip"
+      unzip -q awscliv2.zip
+      sudo ./aws/install
+    )
+    log_success "AWS CLI installed"
   fi
   end_timer
   echo ""
