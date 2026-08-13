@@ -152,6 +152,7 @@ main() {
     file \
     flameshot \
     flatpak \
+    extrepo \
     git-all \
     gnome-software-plugin-flatpak \
     gnupg \
