@@ -207,6 +207,7 @@ main() {
     libxml2-dev \
     libxmlsec1-dev \
     make \
+    postgresql-client \
     procps \
     silversearcher-ag \
     solaar \
