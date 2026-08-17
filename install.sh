@@ -19,7 +19,7 @@ else
   VERBOSE=false
   CHROME_URL="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
   ULAUNCHER_URL="https://github.com/Ulauncher/Ulauncher/releases/download/v6.0.0-beta30/ulauncher_6.0.0.beta30_all.deb"
-  CURSOR_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.0"
+  CURSOR_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/3.16"
 fi
 
 # Create cache directories
@@ -128,9 +128,45 @@ download_with_cache() {
   fi
 }
 
+# Detect Linux distribution
+detect_os() {
+  if [ -f /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    
+    local distro_id="${ID:-}"
+    local distro_id_like="${ID_LIKE:-}"
+    
+    if [ "$distro_id" = "ubuntu" ] || [[ "$distro_id_like" =~ ubuntu ]]; then
+      DISTRO="ubuntu"
+      DISTRO_CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
+    elif [ "$distro_id" = "debian" ] || [[ "$distro_id_like" =~ debian ]]; then
+      DISTRO="debian"
+      DISTRO_CODENAME="${VERSION_CODENAME:-}"
+    else
+      log_warning "Distribution '$distro_id' is neither Ubuntu nor Debian."
+      log_warning "Defaulting to Debian configuration..."
+      DISTRO="debian"
+      DISTRO_CODENAME="${VERSION_CODENAME:-}"
+    fi
+
+    DISTRO_NAME="${PRETTY_NAME:-$distro_id}"
+  else
+    log_error "/etc/os-release not found. Cannot determine Linux distribution."
+    exit 1
+  fi
+
+  if [ -z "$DISTRO_CODENAME" ]; then
+    log_error "Could not determine distribution codename."
+    exit 1
+  fi
+}
+
 # Main installation script
 main() {
   echo "🚀 Starting installation process..."
+  detect_os
+  log_info "Detected OS: $DISTRO_NAME (Distro: $DISTRO, Codename: $DISTRO_CODENAME)"
   echo ""
 
   # Update package list once at the beginning
@@ -148,6 +184,7 @@ main() {
     build-essential \
     ca-certificates \
     curl \
+    desktop-file-utils \
     ffmpeg \
     file \
     flameshot \
@@ -256,24 +293,25 @@ main() {
   echo ""
 
   # Configure Docker repository
-  echo "🐳 Configuring Docker repository..."
+  echo "🐳 Configuring Docker repository (${DISTRO})..."
   start_timer
-  if is_repo_configured "/etc/apt/sources.list.d/docker.list"; then
+  if is_repo_configured "/etc/apt/sources.list.d/docker.sources" || is_repo_configured "/etc/apt/sources.list.d/docker.list"; then
     log_success "Docker repository already configured"
   else
+    local docker_url="https://download.docker.com/linux/${DISTRO}"
     sudo install -m 0755 -d /etc/apt/keyrings
-    sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+    sudo curl -fsSL "${docker_url}/gpg" -o /etc/apt/keyrings/docker.asc
     sudo chmod a+r /etc/apt/keyrings/docker.asc
     # Add the repository to Apt sources:
     sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
 Types: deb
-URIs: https://download.docker.com/linux/debian
-Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+URIs: ${docker_url}
+Suites: ${DISTRO_CODENAME}
 Components: stable
 Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
-    log_success "Docker repository configured"
+    log_success "Docker repository configured for ${DISTRO} (${DISTRO_CODENAME})"
   fi
   end_timer
   echo ""
@@ -295,22 +333,6 @@ EOF
   end_timer
   echo ""
 
-  # Configure Antigravity repository
-  echo "⚙️ Configuring Antigravity repository..."
-  start_timer
-  if is_repo_configured "/etc/apt/sources.list.d/antigravity.list"; then
-    log_success "Antigravity repository already configured"
-  else
-    sudo mkdir -p /etc/apt/keyrings
-    curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg | \
-      sudo gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" | \
-      sudo tee /etc/apt/sources.list.d/antigravity.list > /dev/null
-    log_success "Antigravity repository configured"
-  fi
-  end_timer
-  echo ""
-
   # Update package list after adding repositories
   log_info "Updating package list after repository configuration..."
   sudo apt update
@@ -320,7 +342,6 @@ EOF
   echo "📦 Installing main tools and applications..."
   start_timer
   install_packages \
-    antigravity \
     containerd.io \
     docker-buildx-plugin \
     docker-ce \
@@ -467,6 +488,24 @@ EOF
       log_success "Cursor installed"
     else
       log_error "Failed to download or find Cursor installer"
+    fi
+  fi
+  end_timer
+  echo ""
+
+  # Install Antigravity IDE
+  echo "🪐 Installing Antigravity IDE..."
+  start_timer
+  if [ -x "/usr/local/bin/antigravity-ide" ] || command -v antigravity-ide &> /dev/null; then
+    log_success "Antigravity IDE is already installed"
+  else
+    local antigravity_installer="${SCRIPT_DIR}/install-antigravity.sh"
+    if [ -f "$antigravity_installer" ]; then
+      log_info "Running Antigravity IDE installer script..."
+      bash "$antigravity_installer"
+      log_success "Antigravity IDE installed"
+    else
+      log_error "Antigravity installer script not found at $antigravity_installer"
     fi
   fi
   end_timer
